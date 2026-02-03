@@ -4,40 +4,33 @@ type Status = "Focusing" | "Resting" | "Snoozing";
 
 function App() {
   const [status, setStatus] = useState<Status>("Focusing");
-  const [targetTime, setTargetTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(45 * 60);
-  const [isPaused, setIsPaused] = useState(true);
   const [isAlertMode, setIsAlertMode] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    let interval: any;
-
-    if (!isPaused) {
-      interval = setInterval(() => {
-        const now = Date.now();
-        const diff = Math.max(0, Math.floor((targetTime - now) / 1000));
-        setTimeLeft(diff);
-
-        if (diff <= 0) {
-          timerIsUp();
-        }
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [isPaused, targetTime]);
-
-  useEffect(() => {
-    // Initial theme check
+    // Initial state sync
     window.ipcRenderer.invoke('get-theme').then(setIsDark);
+    window.ipcRenderer.invoke('get-timer-state').then((state: any) => {
+      setTimeLeft(state.timeLeft);
+      setStatus(state.status);
+    });
 
     const handleThemeChange = (_event: any, dark: boolean) => {
       setIsDark(dark);
     };
 
+    const handleTimerTick = (_event: any, state: any) => {
+      setTimeLeft(state.timeLeft);
+      setStatus(state.status);
+      if (state.timeLeft <= 0) {
+        setIsAlertMode(true);
+      } else {
+        setIsAlertMode(false);
+      }
+    };
+
     const handleNotificationAction = (_event: any, actionId: string) => {
-      console.log("收到通知动作:", actionId);
       if (actionId === "take-break") {
         takeBreak();
       } else if (actionId === "snooze") {
@@ -46,12 +39,12 @@ function App() {
     };
 
     window.ipcRenderer.on('theme-changed', handleThemeChange);
+    window.ipcRenderer.on('timer-tick', handleTimerTick);
     window.ipcRenderer.on('notification-action', handleNotificationAction);
-
-    resetTimer();
 
     return () => {
       window.ipcRenderer.off('theme-changed', handleThemeChange);
+      window.ipcRenderer.off('timer-tick', handleTimerTick);
       window.ipcRenderer.off('notification-action', handleNotificationAction);
     };
   }, []);
@@ -62,29 +55,9 @@ function App() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const timerIsUp = async () => {
-    setIsPaused(true);
-    setIsAlertMode(true);
-    
-    window.ipcRenderer.send('show-window');
-
-    window.ipcRenderer.invoke('send-notification', {
-      title: "休息时间到！🔔",
-      body: "代码写完了吗？该起身走走啦！🏃‍♂️",
-      actions: [
-        { id: "take-break", title: "开始休息" },
-        { id: "snooze", title: "稍后提醒" },
-      ],
-    });
-  };
-
   const setDuration = (mins: number, label: Status) => {
     setIsAlertMode(false);
-    const newTargetTime = Date.now() + mins * 60 * 1000;
-    setTargetTime(newTargetTime);
-    setTimeLeft(mins * 60);
-    setStatus(label);
-    setIsPaused(false);
+    window.ipcRenderer.send('set-timer', { mins, status: label });
   };
 
   const takeBreak = () => setDuration(5, "Resting");
@@ -117,7 +90,6 @@ function App() {
       }`}
       style={{ WebkitAppRegion: 'drag' } as any}
     >
-      {/* Spacer for macOS traffic lights */}
       <div className="h-10 w-full" />
 
       <div className="flex-1 flex justify-center items-center">
@@ -129,7 +101,11 @@ function App() {
           } ${isAlertMode ? "animate-pulse" : ""}`}
           style={{ WebkitAppRegion: 'no-drag' } as any}
         >
-          <img src="./logo.svg" alt="RestCode Logo" className="w-16 h-16 mx-auto mb-4" />
+          <img 
+            src={isDark ? "./logo-dark.svg" : "./logo.svg"} 
+            alt="RestCode Logo" 
+            className="w-16 h-16 mx-auto mb-4" 
+          />
           <div className={`text-sm font-semibold uppercase tracking-widest ${getStatusColor()}`}>
             {status}
           </div>
