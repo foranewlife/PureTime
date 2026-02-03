@@ -1,0 +1,65 @@
+{
+  "name": "myrelax",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A simple focus timer for developers",
+  "author": "chenys",
+  "main": "dist-electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "package": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.chenys.myrelax",
+    "productName": "MyRelax",
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Please allow access to Apple Events.",
+        "NSCameraUsageDescription": "Please allow access to the camera.",
+        "NSMicrophoneUsageDescription": "Please allow access to the microphone."
+      },
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "lucide-react": "^0.563.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "autoprefixer": "^10.4.23",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.7.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  }
+}
