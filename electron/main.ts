@@ -62,7 +62,7 @@ function updateTrayMenu() {
 
   menuTemplate.push({ type: 'separator' })
   menuTemplate.push({ label: '显示主界面', click: () => win?.show() })
-  menuTemplate.push({ label: '退出 MyRelax', click: () => app.quit() })
+  menuTemplate.push({ label: '退出 PureTime', click: () => app.quit() })
 
   const contextMenu = Menu.buildFromTemplate(menuTemplate)
   tray.setContextMenu(contextMenu)

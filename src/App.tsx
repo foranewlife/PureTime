@@ -177,8 +177,9 @@ function App() {
         </div>
       </div>
       
+      {/* Footer Info */}
       <div className={`py-4 text-center text-[10px] uppercase tracking-widest opacity-20 ${isDark ? "text-white" : "text-black"}`}>
-        MyRelax &bull; Stay focused &bull; Rest well
+        PureTime &bull; Stay focused &bull; Rest well
       </div>
     </div>
   );
