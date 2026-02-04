@@ -7,16 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      lucide-react:
-        specifier: ^0.563.0
-        version: 0.563.0(react@19.2.4)
-      react:
-        specifier: ^19.1.0
-        version: 19.2.4
-      react-dom:
-        specifier: ^19.1.0
-        version: 19.2.4(react@19.2.4)
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
@@ -39,9 +29,18 @@ importers:
       electron-builder:
         specifier: ^26.7.0
         version: 26.7.0(electron-builder-squirrel-windows@26.7.0)
+      lucide-react:
+        specifier: ^0.563.0
+        version: 0.563.0(react@19.2.4)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
+      react:
+        specifier: ^19.1.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.2.4(react@19.2.4)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
