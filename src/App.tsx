@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Coffee, ChevronDown } from "lucide-react";
+import { Play, Pause, RotateCcw, Coffee, ChevronDown, Activity } from "lucide-react";
+import PVTTest from "./components/PVTTest";
 
-type AppState = "IDLE" | "FOCUSING" | "RESTING" | "ALERT";
+type AppState = "IDLE" | "FOCUSING" | "RESTING" | "ALERT" | "PVT";
 
 const PRESETS = [
   { label: "25m (番茄钟)", mins: 25 },
@@ -14,6 +15,7 @@ function App() {
   const [state, setState] = useState<AppState>("IDLE");
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isPaused, setIsPaused] = useState(true);
+  const [pvtActive, setPvtActive] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
 
@@ -23,6 +25,7 @@ function App() {
       setTimeLeft(res.timeLeft);
       setState(res.state);
       setIsPaused(res.isPaused);
+      setPvtActive(res.pvtActive);
     });
 
     const handleThemeChange = (_event: any, dark: boolean) => setIsDark(dark);
@@ -30,6 +33,7 @@ function App() {
       setTimeLeft(res.timeLeft);
       setState(res.state);
       setIsPaused(res.isPaused);
+      setPvtActive(res.pvtActive);
     };
 
     window.ipcRenderer.on('theme-changed', handleThemeChange);
@@ -51,6 +55,7 @@ function App() {
     if (state === "FOCUSING") return isDark ? "text-[#4fc1ff]" : "text-[#007acc]";
     if (state === "RESTING") return "text-[#4ec9b0]";
     if (state === "ALERT") return "text-[#ff5252]";
+    if (state === "PVT") return "text-[#ebbb33]";
     return isDark ? "text-white/40" : "text-black/40";
   };
 
@@ -63,6 +68,15 @@ function App() {
     // 通知主进程
     window.ipcRenderer.send('start-focus', mins);
   };
+
+  if (pvtActive) {
+    return (
+      <PVTTest 
+        isDark={isDark} 
+        onClose={() => window.ipcRenderer.send('exit-pvt')} 
+      />
+    );
+  }
 
   return (
     <div className={`h-screen w-full flex flex-col transition-colors duration-500 overflow-hidden ${isDark ? "bg-[#1e1e1e]" : "bg-[#F5F5DC]"}`}>
@@ -159,6 +173,18 @@ function App() {
                         {p.label}
                       </button>
                     ))}
+                    <div className={`h-px my-1 ${isDark ? "bg-white/10" : "bg-black/10"}`} />
+                    <button
+                      onClick={() => {
+                        setShowPresets(false);
+                        window.ipcRenderer.send('enter-pvt');
+                      }}
+                      className={`text-left px-4 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors ${
+                        isDark ? "text-yellow-400 hover:bg-white/5" : "text-yellow-600 hover:bg-black/5"
+                      }`}
+                    >
+                      <Activity size={16} /> 疲劳检测 (PVT)
+                    </button>
                   </div>
                 </div>
               )}

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, Notification, nativeImage, nativeTheme, Tray, Menu } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
@@ -22,7 +23,40 @@ export type AppState = "IDLE" | "FOCUSING" | "RESTING" | "ALERT";
 let currentState: AppState = "IDLE"
 let timeLeft = 25 * 60 
 let isPaused = true
+let pvtActive = false
 let timerInterval: NodeJS.Timeout | null = null
+
+// --- Update Logic ---
+function initUpdater() {
+  // Silent check on startup
+  autoUpdater.checkForUpdatesAndNotify()
+
+  autoUpdater.on('update-available', () => {
+    new Notification({ title: "发现新版本 🚀", body: "正在后台为您下载更新..." }).show()
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    const notification = new Notification({
+      title: "更新已就绪 ✨",
+      body: "新版本已下载完成，点击立即重启应用完成安装.",
+    })
+    notification.on('click', () => autoUpdater.quitAndInstall())
+    notification.show()
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Update error:', err)
+  })
+}
+
+function manualCheckUpdate() {
+  autoUpdater.checkForUpdates()
+  
+  // Provide manual feedback
+  autoUpdater.once('update-not-available', () => {
+    new Notification({ title: "PureTime", body: "当前已是最新版本 🎉" }).show()
+  })
+}
 
 function updateTrayMenu() {
   if (!tray) return
@@ -61,6 +95,7 @@ function updateTrayMenu() {
   }
 
   menuTemplate.push({ type: 'separator' })
+  menuTemplate.push({ label: '检查更新...', click: () => manualCheckUpdate() })
   menuTemplate.push({ label: '显示主界面', click: () => win?.show() })
   menuTemplate.push({ label: '退出 PureTime', click: () => app.quit() })
 
@@ -85,8 +120,8 @@ function updateTray(force = false) {
   
   let statusEmoji = "🧘"
   if (currentState === "FOCUSING") statusEmoji = isPaused ? "⏸" : "⚡️"
-  if (currentState === "RESTING") statusEmoji = isPaused ? "⏸" : "☕️"
-  if (currentState === "ALERT") statusEmoji = "🔔"
+  else if (currentState === "RESTING") statusEmoji = isPaused ? "⏸" : "☕️"
+  else if (currentState === "ALERT") statusEmoji = "🔔"
   
   const newTitle = timeStr ? `${statusEmoji} ${timeStr}` : statusEmoji
   if (force || newTitle !== lastTrayTitle) {
@@ -101,7 +136,8 @@ function sendStateUpdate() {
     win.webContents.send('state-update', { 
       timeLeft, 
       state: currentState, 
-      isPaused 
+      isPaused,
+      pvtActive
     })
   }
 }
@@ -282,14 +318,18 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  initUpdater()
+})
 
 // IPC Handlers
 ipcMain.handle('get-theme', () => nativeTheme.shouldUseDarkColors)
 ipcMain.handle('get-initial-state', () => ({ 
   timeLeft, 
   state: currentState, 
-  isPaused 
+  isPaused,
+  pvtActive
 }))
 
 ipcMain.on('start-focus', (_, mins) => enterFocusingState(mins))
@@ -297,6 +337,18 @@ ipcMain.on('start-rest', (_, mins) => enterRestingState(mins))
 ipcMain.on('toggle-pause', () => togglePause())
 ipcMain.on('reset-timer', () => enterIdleState())
 ipcMain.on('snooze', () => enterFocusingState(10))
+
+ipcMain.on('enter-pvt', () => {
+  pvtActive = true
+  updateTray(true)
+  sendStateUpdate()
+})
+
+ipcMain.on('exit-pvt', () => {
+  pvtActive = false
+  updateTray(true)
+  sendStateUpdate()
+})
 
 ipcMain.on('minimize-window', () => win?.minimize())
 ipcMain.on('close-window', () => win?.hide())

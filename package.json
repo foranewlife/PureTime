@@ -37,7 +37,9 @@
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-updater": "^6.7.3"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/react": "^19.1.8",
