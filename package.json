@@ -1,7 +1,7 @@
 {
   "name": "puretime",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.2",
   "description": "A pure and simple focus timer for developers",
   "author": "chenys",
   "main": "dist-electron/main.js",

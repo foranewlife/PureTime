@@ -26,6 +26,7 @@ let isPaused = true
 let pvtActive = false
 let timerInterval: NodeJS.Timeout | null = null
 let updateReady = false
+let isUpdating = false
 
 // --- Update Logic ---
 function initUpdater() {
@@ -38,7 +39,7 @@ function initUpdater() {
 
   autoUpdater.on('update-downloaded', () => {
     updateReady = true
-    updateTray() // Refresh tray to show the restart option
+    updateTray() 
     
     const notification = new Notification({
       title: "更新已就绪 ✨",
@@ -46,8 +47,13 @@ function initUpdater() {
       actions: [{ type: 'button', text: '立即重启' }]
     })
     
-    notification.on('action', () => autoUpdater.quitAndInstall())
-    notification.on('click', () => autoUpdater.quitAndInstall())
+    const doUpdate = () => {
+      isUpdating = true // Bypass close prevention
+      autoUpdater.quitAndInstall()
+    }
+
+    notification.on('action', doUpdate)
+    notification.on('click', doUpdate)
     notification.show()
   })
 
@@ -106,7 +112,10 @@ function updateTrayMenu() {
   if (updateReady) {
     menuTemplate.push({ 
       label: '✨ 重启并安装更新', 
-      click: () => autoUpdater.quitAndInstall() 
+      click: () => {
+        isUpdating = true
+        autoUpdater.quitAndInstall()
+      }
     })
     menuTemplate.push({ type: 'separator' })
   }
@@ -308,7 +317,7 @@ function createWindow() {
   }
 
   win.on('close', (event) => {
-    if (process.platform === 'darwin' && !(app as any).isQuitting) {
+    if (process.platform === 'darwin' && !(app as any).isQuitting && !isUpdating) {
       event.preventDefault()
       win?.hide()
     }
