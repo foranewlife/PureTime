@@ -25,6 +25,7 @@ let timeLeft = 25 * 60
 let isPaused = true
 let pvtActive = false
 let timerInterval: NodeJS.Timeout | null = null
+let updateReady = false
 
 // --- Update Logic ---
 function initUpdater() {
@@ -36,10 +37,16 @@ function initUpdater() {
   })
 
   autoUpdater.on('update-downloaded', () => {
+    updateReady = true
+    updateTray() // Refresh tray to show the restart option
+    
     const notification = new Notification({
       title: "更新已就绪 ✨",
-      body: "新版本已下载完成，点击立即重启应用完成安装.",
+      body: "新版本已下载完成，立即重启以享受新功能。",
+      actions: [{ type: 'button', text: '立即重启' }]
     })
+    
+    notification.on('action', () => autoUpdater.quitAndInstall())
     notification.on('click', () => autoUpdater.quitAndInstall())
     notification.show()
   })
@@ -95,6 +102,15 @@ function updateTrayMenu() {
   }
 
   menuTemplate.push({ type: 'separator' })
+  
+  if (updateReady) {
+    menuTemplate.push({ 
+      label: '✨ 重启并安装更新', 
+      click: () => autoUpdater.quitAndInstall() 
+    })
+    menuTemplate.push({ type: 'separator' })
+  }
+
   menuTemplate.push({ label: '检查更新...', click: () => manualCheckUpdate() })
   menuTemplate.push({ label: '显示主界面', click: () => win?.show() })
   menuTemplate.push({ label: '退出 PureTime', click: () => app.quit() })
