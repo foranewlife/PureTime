@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification, nativeImage, nativeTheme, Tray, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Notification, nativeImage, nativeTheme, Tray, Menu, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -25,39 +25,33 @@ let timeLeft = 25 * 60
 let isPaused = true
 let pvtActive = false
 let timerInterval: NodeJS.Timeout | null = null
-let updateReady = false
-let isUpdating = false
 
 // --- Update Logic ---
 function initUpdater() {
+  // Level 2 OSS Strategy: Detect but don't auto-download (avoid signature issues)
+  autoUpdater.autoDownload = false
+  
   // Silent check on startup
-  autoUpdater.checkForUpdatesAndNotify()
+  autoUpdater.checkForUpdates()
 
-  autoUpdater.on('update-available', () => {
-    new Notification({ title: "发现新版本 🚀", body: "正在后台为您下载更新..." }).show()
-  })
-
-  autoUpdater.on('update-downloaded', () => {
-    updateReady = true
-    updateTray() 
-    
+  autoUpdater.on('update-available', (info) => {
     const notification = new Notification({
-      title: "更新已就绪 ✨",
-      body: "新版本已下载完成，立即重启以享受新功能。",
-      actions: [{ type: 'button', text: '立即重启' }]
+      title: "发现新版本 🚀",
+      body: `PureTime v${info.version} 现已发布，点击前往 GitHub 下载。`,
+      actions: [{ type: 'button', text: '前往下载' }]
     })
-    
-    const doUpdate = () => {
-      isUpdating = true // Bypass close prevention
-      autoUpdater.quitAndInstall()
+
+    const openRelease = () => {
+      shell.openExternal('https://github.com/foranewlife/PureTime/releases/latest')
     }
 
-    notification.on('action', doUpdate)
-    notification.on('click', doUpdate)
+    notification.on('action', openRelease)
+    notification.on('click', openRelease)
     notification.show()
   })
 
   autoUpdater.on('error', (err) => {
+    // Only log, no need to annoy user for background checks
     console.error('Update error:', err)
   })
 }
@@ -65,7 +59,6 @@ function initUpdater() {
 function manualCheckUpdate() {
   autoUpdater.checkForUpdates()
   
-  // Provide manual feedback
   autoUpdater.once('update-not-available', () => {
     new Notification({ title: "PureTime", body: "当前已是最新版本 🎉" }).show()
   })
@@ -108,18 +101,6 @@ function updateTrayMenu() {
   }
 
   menuTemplate.push({ type: 'separator' })
-  
-  if (updateReady) {
-    menuTemplate.push({ 
-      label: '✨ 重启并安装更新', 
-      click: () => {
-        isUpdating = true
-        autoUpdater.quitAndInstall()
-      }
-    })
-    menuTemplate.push({ type: 'separator' })
-  }
-
   menuTemplate.push({ label: '检查更新...', click: () => manualCheckUpdate() })
   menuTemplate.push({ label: '显示主界面', click: () => win?.show() })
   menuTemplate.push({ label: '退出 PureTime', click: () => app.quit() })
@@ -317,7 +298,7 @@ function createWindow() {
   }
 
   win.on('close', (event) => {
-    if (process.platform === 'darwin' && !(app as any).isQuitting && !isUpdating) {
+    if (process.platform === 'darwin' && !(app as any).isQuitting) {
       event.preventDefault()
       win?.hide()
     }
